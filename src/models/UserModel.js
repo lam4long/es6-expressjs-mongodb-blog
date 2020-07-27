@@ -1,33 +1,93 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import uniqueValidator from 'mongoose-unique-validator';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
-const UserSchema = new mongoose.Schema({
-	firstName: {
-		type: String,
-		required: true,
-		trim: true,
-	},
-	lastName: {
-		type: String,
-		required: true,
-	},
-	email: {
-		type: String,
-		required: true,
-	},
-	password: {
-		type: String,
-		required: true,
-		minlength: 7,
-	},
-	tokens: [{
-		token: {
+const UserSchema = new mongoose.Schema(
+	{
+		username: {
 			type: String,
-			required: false,
+			unique: true,
+			required: true,
+			index: true,
 		},
-	}],
-}, { timestamps: true });
+		email: {
+			type: String,
+			unique: true,
+			required: true,
+			index: true,
+		},
+		password: {
+			type: String,
+			required: true,
+			minlength: 6,
+		},
+		bio: String,
+		image: String,
+		hash: String,
+		salt: String,
+	},
+	{ timestamps: true },
+);
+
+UserSchema.plugin(uniqueValidator, { message: 'is already taken.' });
+
+const getHash = (password, salt) =>
+	crypto.pbkdf2Sync(password, salt, 10000, 512, 'sha512').toString('hex');
+
+UserSchema.methods.validPassword = function(password) {
+	const hash = getHash(password, this.salt);
+	return this.hash === hash;
+};
+
+UserSchema.methods.setPassword = function(password) {
+	this.salt = crypto.randomBytes(16).toString('hex');
+	this.hash = getHash(password, this.salt);
+};
+
+UserSchema.methods.generateJWT = function() {
+	return jwt.sign(
+		{
+			_id: this._id,
+			username: this.username,
+		},
+		process.env.JWT_SECRET,
+		{
+			expiresIn: process.env.JWT_TIMEOUT_DURATION,
+		},
+	);
+};
+
+UserSchema.methods.toAuthJSON = function() {
+	return {
+		username: this.username,
+		email: this.email,
+		token: this.generateJWT(),
+	};
+};
+
+UserSchema.methods.toProfileJSON = function() {
+	return {
+		username: this.username,
+		email: this.email,
+		bio: this.bio,
+		image: this.image,
+	};
+};
+
+UserSchema.statics.findByCredential = async function(email, password) {
+	const user = await this.findOne({ email });
+
+	if (!user) {
+		throw new Error('Account is not existed. Please check your email input.');
+	}
+	const isPasswordMatch = await user.validPassword(password);
+	if (!isPasswordMatch) {
+		throw new Error('Invalid login credentials');
+	}
+
+	return user;
+};
 
 /* 
 	Note: cant use arrow operator for the callback,
@@ -37,33 +97,9 @@ const UserSchema = new mongoose.Schema({
 UserSchema.pre('save', async function(next) {
 	// Hash the password before save the model
 	if (this.isModified('password')) {
-		const salt = await bcrypt.genSalt(10);
-		this.password = await bcrypt.hash(this.password, salt);
+		this.password = await this.setPassword(this.password);
 	}
 	next();
-});
-
-UserSchema.method('generateAuthToken', async function() {
-	// Generate an auth token for the user
-	const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_TIMEOUT_DURATION });
-	this.tokens = this.tokens.concat({ token });
-	await this.save();
-	return token;
-});
-
-UserSchema.static('findByCredentials', async function(email, password) {
-	// Search for a user by email & password.
-	const user = await this.findOne({ email });
-	
-	if (!user) {
-		throw new Error('Account is not existed. Please check your email input.');
-	}
-	const isPasswordMatch = await bcrypt.compare(password, user.password);
-	if (!isPasswordMatch) {
-		throw new Error('Invalid login credentials');
-	}
-
-	return user;
 });
 
 export default mongoose.model('User', UserSchema);

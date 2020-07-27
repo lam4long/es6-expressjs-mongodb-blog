@@ -1,5 +1,5 @@
 import express from 'express';
-import { 
+import {
 	register,
 	registerValidator,
 	loginValidator,
@@ -9,15 +9,14 @@ import {
 } from '../controllers/AuthController';
 import auth from '../middlewares/auth';
 
-const router = express.Router();
+const authRouter = express.Router();
 
-router.post('/register', registerValidator, register);
-router.post('/login', loginValidator, login);
-router.get('/profile', auth, async (req, res) => {
-	res.send(req.user);
-});
-router.post('/logout', auth, logout);
-router.post('/logoutall', auth, logoutAll);
+authRouter.post('/register', registerValidator, register);
+authRouter.post('/login', loginValidator, login);
+// router.get('/profile', auth, async (req, res) => {
+// 	res.send(req.user);
+// });
+// router.post('/logout', auth, logout);
+// router.post('/logoutall', auth, logoutAll);
 
-export default router;
-
+export default authRouter;
