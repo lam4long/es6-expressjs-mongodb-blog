@@ -1,10 +1,10 @@
 import express from 'express';
-import { createPost } from '../controllers/PostController';
+import { createPost, createPostValidator } from '../controllers/PostController';
 
 import auth from '../middlewares/auth';
 
 const postRouter = express.Router();
 
-postRouter.post('/', auth, createPost);
+postRouter.post('/', [auth, createPostValidator], createPost);
 
 export default postRouter;
