@@ -13,10 +13,8 @@ const authRouter = express.Router();
 
 authRouter.post('/register', registerValidator, register);
 authRouter.post('/login', loginValidator, login);
-// router.get('/profile', auth, async (req, res) => {
-// 	res.send(req.user);
-// });
-// router.post('/logout', auth, logout);
-// router.post('/logoutall', auth, logoutAll);
+authRouter.get('/profile', auth, async (req, res) => {
+	res.send(req.user.toProfileJSON());
+});
 
 export default authRouter;
