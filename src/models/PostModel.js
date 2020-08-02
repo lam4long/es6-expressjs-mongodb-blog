@@ -16,13 +16,14 @@ const PostSchema = new mongoose.Schema(
 
 PostSchema.methods.toJSON = function(user) {
 	return {
+		id: this._id,
 		title: this.title,
 		body: this.body,
 		favoritesCount: this.favoritesCount,
 		createdAt: this.createdAt,
 		updatedAt: this.updatedAt,
 		tagList: this.tagList,
-		author: this.author.toProfileJSON(user),
+		author: this.author.toProfileJSON(),
 	};
 };
 

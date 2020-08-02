@@ -1,10 +1,25 @@
 import express from 'express';
-import { createPost, createPostValidator } from '../controllers/PostController';
+import {
+	createPost,
+	createAndUpdatePostValidator,
+	getAllPosts,
+	getPostById,
+	updatePostById,
+	deletePostById,
+} from '../controllers/PostController';
 
 import auth from '../middlewares/auth';
 
 const postRouter = express.Router();
 
-postRouter.post('/', [auth, createPostValidator], createPost);
+postRouter.get('/', getAllPosts);
+postRouter.get('/:postId', getPostById);
+postRouter.put(
+	'/:postId',
+	[auth, createAndUpdatePostValidator],
+	updatePostById,
+);
+postRouter.delete('/:postId', auth, deletePostById);
+postRouter.post('/', [auth, createAndUpdatePostValidator], createPost);
 
 export default postRouter;

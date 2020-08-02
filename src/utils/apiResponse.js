@@ -47,3 +47,11 @@ export const unauthorizedResponse = (res, msg) => {
 	};
 	return res.status(401).json(data);
 };
+
+export const wrongPermissionResponse = res => {
+	const data = {
+		status: 0,
+		message: 'No Permission to edit',
+	};
+	return res.status(403).json(data);
+};
