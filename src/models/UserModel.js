@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-import uniqueValidator from 'mongoose-unique-validator';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
+import uniqueValidator from 'mongoose-unique-validator';
 
 const UserSchema = new mongoose.Schema(
 	{
@@ -22,6 +22,8 @@ const UserSchema = new mongoose.Schema(
 			required: true,
 			minlength: 6,
 		},
+		likedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+		followingUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 		bio: String,
 		image: String,
 		hash: String,
@@ -66,13 +68,54 @@ UserSchema.methods.toAuthJSON = function() {
 	};
 };
 
-UserSchema.methods.toProfileJSON = function() {
-	return {
+UserSchema.methods.toProfileJSON = function(user) {
+	const profile = {
 		username: this.username,
 		email: this.email,
 		bio: this.bio,
 		image: this.image,
 	};
+
+	if (user && user._id !== this._id) {
+		return {
+			...profile,
+			following: user.isFollowing(this._id),
+		};
+	}
+	return profile;
+};
+
+UserSchema.methods.likePost = function(id) {
+	if (this.likedPosts.indexOf(id) === -1) {
+		this.likedPosts.push(id);
+	}
+	return this.save();
+};
+
+UserSchema.methods.unlikedPost = function(id) {
+	this.likedPosts.remove(id);
+	return this.save();
+};
+
+UserSchema.methods.isLikedPost = function(id) {
+	return this.likedPosts.some(postId => postId.toString() === id.toString());
+};
+
+UserSchema.methods.followUser = function(id) {
+	if (this.followingUsers.indexOf(id) === -1) {
+		this.followingUsers.push(id);
+	}
+};
+
+UserSchema.methods.unfollowUser = function(id) {
+	this.followingUsers.remove(id);
+	return this.save();
+};
+
+UserSchema.methods.isFollowing = function(id) {
+	return this.followingUsers.some(
+		userId => userId.toString() === id.toString(),
+	);
 };
 
 UserSchema.statics.findByCredential = async function(email, password) {
@@ -89,9 +132,9 @@ UserSchema.statics.findByCredential = async function(email, password) {
 	return user;
 };
 
-/* 
+/*
 	Note: cant use arrow operator for the callback,
-	which changes the scope of this. 
+	which changes the scope of this.
 	If we define a regular callback, should be fine.
 */
 UserSchema.pre('save', async function(next) {

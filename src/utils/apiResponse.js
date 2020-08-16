@@ -10,7 +10,7 @@ export const successResponseWithData = (res, msg, data) => {
 	const resData = {
 		status: 1,
 		message: msg,
-		data: data,
+		data,
 	};
 	return res.status(200).json(resData);
 };
@@ -35,7 +35,7 @@ export const validationErrorWithData = (res, msg, data) => {
 	const resData = {
 		status: 0,
 		message: msg,
-		data: data,
+		data,
 	};
 	return res.status(400).json(resData);
 };

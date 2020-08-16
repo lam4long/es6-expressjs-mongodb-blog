@@ -1,11 +1,11 @@
 import { body, validationResult } from 'express-validator';
+
 import UserModel from '../models/UserModel';
 import {
 	errorResponse,
-	successResponse,
-	validationErrorWithData,
 	successResponseWithData,
 	unauthorizedResponse,
+	validationErrorWithData,
 } from '../utils/apiResponse';
 
 /**
@@ -34,7 +34,9 @@ export const registerValidator = [
 		.withMessage('Email must be a valid email address.')
 		.custom(async value => {
 			const user = await UserModel.findOne({ email: value });
-			if (user) throw new Error('Email already in use');
+			if (user) {
+				throw new Error('Email already in use');
+			}
 		}),
 	body('password')
 		.isLength({ min: 6 })

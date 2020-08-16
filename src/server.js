@@ -1,12 +1,13 @@
-import express from 'express';
 import bodyParser from 'body-parser';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import logger from 'morgan';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import express from 'express';
+import helmet from 'helmet';
+import mongoose from 'mongoose';
+import morgan from 'morgan';
 
-// import indexRouter from'./routes/index';
 import apiRouter from './routes/api';
 import { notFoundResponse } from './utils/apiResponse';
 
@@ -38,6 +39,12 @@ const app = express();
 // 	app.use(logger('development'));
 // }
 
+if (process.env.NODE_ENV === 'development') {
+	app.use(morgan('dev'));
+}
+
+app.use(compression());
+app.use(helmet());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());

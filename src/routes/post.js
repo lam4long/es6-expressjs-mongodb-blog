@@ -1,13 +1,13 @@
 import express from 'express';
+
 import {
-	createPost,
 	createAndUpdatePostValidator,
+	createPost,
+	deletePostById,
 	getAllPosts,
 	getPostById,
 	updatePostById,
-	deletePostById,
 } from '../controllers/PostController';
-
 import auth from '../middlewares/auth';
 
 const postRouter = express.Router();

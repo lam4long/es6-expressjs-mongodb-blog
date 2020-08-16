@@ -1,4 +1,5 @@
 import express from 'express';
+
 import AuthRouter from './auth';
 import PostRouter from './post';
 

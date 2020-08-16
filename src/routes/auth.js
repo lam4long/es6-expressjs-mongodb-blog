@@ -1,11 +1,10 @@
 import express from 'express';
+
 import {
+	login,
+	loginValidator,
 	register,
 	registerValidator,
-	loginValidator,
-	login,
-	logout,
-	logoutAll,
 } from '../controllers/AuthController';
 import auth from '../middlewares/auth';
 

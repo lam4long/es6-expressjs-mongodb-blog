@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+
 import UserModel from '../models/UserModel';
 import { unauthorizedResponse } from '../utils/apiResponse';
 

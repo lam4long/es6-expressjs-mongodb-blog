@@ -1,16 +1,14 @@
-import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
+
 import PostModel from '../models/PostModel';
 import {
 	errorResponse,
+	notFoundResponse,
 	successResponse,
 	successResponseWithData,
-	unauthorizedResponse,
 	validationErrorWithData,
-	notFoundResponse,
 	wrongPermissionResponse,
 } from '../utils/apiResponse';
-import UserModel from '../models/UserModel';
 
 export const createAndUpdatePostValidator = [
 	body('title')
@@ -53,7 +51,9 @@ export const getAllPosts = async (req, res) => {
 export const findPostById = async (postId, res) => {
 	try {
 		const post = await PostModel.findById(postId).populate('author');
-		if (!post) return notFoundResponse(res, 'Post Not Found');
+		if (!post) {
+			return notFoundResponse(res, 'Post Not Found');
+		}
 		return post;
 	} catch (err) {
 		return errorResponse(res, err);
