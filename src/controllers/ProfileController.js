@@ -2,6 +2,7 @@ import UserModel from '../models/UserModel';
 import {
 	errorResponse,
 	notFoundResponse,
+	successResponse,
 	successResponseWithData,
 } from '../utils/apiResponse';
 
@@ -21,7 +22,7 @@ export const getProfileByUserId = async (req, res) => {
 		return successResponseWithData(
 			res,
 			'Get User Profile Success',
-			req.user.toProfileJSON(),
+			user.toProfileJSON(),
 		);
 	} catch (err) {
 		return errorResponse(res, err);
@@ -29,25 +30,31 @@ export const getProfileByUserId = async (req, res) => {
 };
 
 export const followUser = async (req, res) => {
-	const targetUser = await UserModel.findById(req.params.userId);
+	// check if your id doesn't match the id of the user you want to follow
+	if (req.user._id === req.params.userId) {
+		return errorResponse({ error: 'You cannot follow yourself' });
+	}
 
+	const targetUser = await UserModel.findById(req.params.userId);
 	if (!targetUser) return notFoundResponse(res, 'User Not Found');
-	await req.user.followUser(targetUser);
-	return successResponseWithData(
-		res,
-		'Follow User Success',
-		req.user.toProfileJSON(req.user),
-	);
+	Promise.all([
+		req.user.followUser(targetUser._id),
+		targetUser.isFollowedBy(req.user._id),
+	]);
+	return successResponse(res, 'Follow User Success');
 };
 
 export const unfollowUser = async (req, res) => {
+	// check if your id doesn't match the id of the user you want to follow
+	if (req.user._id === req.params.userId) {
+		return errorResponse({ error: 'You cannot unfollow yourself' });
+	}
 	const targetUser = await UserModel.findById(req.params.userId);
 
 	if (!targetUser) return notFoundResponse(res, 'User Not Found');
-	await req.user.unfollowUser(targetUser);
-	return successResponseWithData(
-		res,
-		'Unfollow User Success',
-		req.user.toProfileJSON(req.user),
-	);
+	Promise.all([
+		req.user.unfollowUser(targetUser._id),
+		targetUser.unFollowedBy(req.user._id),
+	]);
+	return successResponse(res, 'Unfollow User Success');
 };

@@ -17,13 +17,8 @@ const UserSchema = new mongoose.Schema(
 			required: true,
 			index: true,
 		},
-		password: {
-			type: String,
-			required: true,
-			minlength: 6,
-		},
 		likedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
-		followingUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+		following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 		followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 		bio: String,
 		image: String,
@@ -69,7 +64,7 @@ UserSchema.methods.toAuthJSON = function() {
 	};
 };
 
-UserSchema.methods.toProfileJSON = function(user) {
+UserSchema.methods.toProfileJSON = function() {
 	const profile = {
 		username: this.username,
 		email: this.email,
@@ -77,12 +72,12 @@ UserSchema.methods.toProfileJSON = function(user) {
 		image: this.image,
 	};
 
-	if (user && user._id !== this._id) {
-		return {
-			...profile,
-			following: user.isFollowing(this._id),
-		};
-	}
+	// if (user && user._id !== this._id) {
+	// 	return {
+	// 		...profile,
+	// 		following: user.isFollowing(this._id),
+	// 	};
+	// }
 	return profile;
 };
 
@@ -103,20 +98,34 @@ UserSchema.methods.isLikedPost = function(id) {
 };
 
 UserSchema.methods.followUser = function(id) {
-	if (this.followingUsers.indexOf(id) === -1) {
-		this.followingUsers.push(id);
+	if (this.following.indexOf(id) === -1) {
+		this.following.push(id);
 	}
+	return this.save();
+};
+
+UserSchema.methods.isFollowedBy = function(id) {
+	if (this.followers.indexOf(id) === -1) {
+		this.followers.push(id);
+	}
+	return this.save();
 };
 
 UserSchema.methods.unfollowUser = function(id) {
-	this.followingUsers.remove(id);
+	this.following.remove(id);
+	return this.save();
+};
+
+UserSchema.methods.unFollowedBy = function(id) {
+	this.followers.remove(id);
 	return this.save();
 };
 
 UserSchema.methods.isFollowing = function(id) {
-	return this.followingUsers.some(
-		userId => userId.toString() === id.toString(),
-	);
+	return this.following.some(userId => {
+		console.log('userId: ', userId);
+		return userId.toString() === id.toString();
+	});
 };
 
 UserSchema.statics.findByCredential = async function(email, password) {
