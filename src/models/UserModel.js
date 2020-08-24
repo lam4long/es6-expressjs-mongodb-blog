@@ -17,12 +17,15 @@ const UserSchema = new mongoose.Schema(
 			required: true,
 			index: true,
 		},
+		password: {
+			type: String,
+			required: true,
+		},
 		likedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
 		following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 		followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 		bio: String,
 		image: String,
-		hash: String,
 		salt: String,
 	},
 	{ timestamps: true },
@@ -35,12 +38,13 @@ const getHash = (password, salt) =>
 
 UserSchema.methods.validPassword = function(password) {
 	const hash = getHash(password, this.salt);
-	return this.hash === hash;
+	return this.password === hash;
 };
 
 UserSchema.methods.setPassword = function(password) {
-	this.salt = crypto.randomBytes(16).toString('hex');
-	this.hash = getHash(password, this.salt);
+	const salt = crypto.randomBytes(16).toString('hex');
+	const hash = getHash(password, salt);
+	return [salt, hash];
 };
 
 UserSchema.methods.generateJWT = function() {
@@ -150,9 +154,16 @@ UserSchema.statics.findByCredential = async function(email, password) {
 UserSchema.pre('save', async function(next) {
 	// Hash the password before save the model
 	if (this.isModified('password')) {
-		this.password = await this.setPassword(this.password);
+		try {
+			const [salt, newHash] = await this.setPassword(this.password);
+			this.salt = salt;
+			this.password = newHash;
+			return next();
+		} catch (err) {
+			return next(err);
+		}
 	}
-	next();
+	return next();
 });
 
 export default mongoose.model('User', UserSchema);
