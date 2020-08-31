@@ -3,7 +3,7 @@ import express from 'express';
 import {
 	followUser,
 	getProfile,
-	getProfileByUserId,
+	findUser,
 	unfollowUser,
 } from '../controllers/ProfileController';
 import auth from '../middlewares/auth';
@@ -11,7 +11,7 @@ import auth from '../middlewares/auth';
 const profileRouter = express.Router();
 
 profileRouter.get('/', auth, getProfile);
-profileRouter.get('/:userId', getProfileByUserId);
+profileRouter.get('/:userId', findUser);
 profileRouter.post('/:userId/follow', auth, followUser);
 profileRouter.delete('/:userId/follow', auth, unfollowUser);
 

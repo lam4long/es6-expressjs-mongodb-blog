@@ -1,12 +1,13 @@
 import mongoose from 'mongoose';
 
-const User = mongoose.model('User');
+import UserModel from './UserModel';
 
 const PostSchema = new mongoose.Schema(
 	{
 		title: String,
 		body: String,
-		favoritesCount: { type: Number, default: 0 },
+		starsCount: { type: Number, default: 0 },
+		likesCount: { type: Number, default: 0 },
 		comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
 		tagList: [{ type: String }],
 		author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -19,12 +20,31 @@ PostSchema.methods.toJSON = function(user) {
 		id: this._id,
 		title: this.title,
 		body: this.body,
-		favoritesCount: this.favoritesCount,
+		starsCount: this.starsCount,
+		likesCount: this.likesCount,
+		liked: user ? user.isLikedPost(this._id) : false,
+		stared: user ? user.isStaredPost(this._id) : false,
 		createdAt: this.createdAt,
 		updatedAt: this.updatedAt,
 		tagList: this.tagList,
 		author: this.author.toProfileJSON(),
 	};
+};
+
+PostSchema.methods.updateLikesCount = async function() {
+	const totalLikesCount = await UserModel.count({
+		likedPosts: { $in: [this._id] },
+	});
+	this.likesCount = totalLikesCount;
+	return this.save();
+};
+
+PostSchema.methods.updateStarsCount = async function() {
+	const totalStarsCount = await UserModel.count({
+		staredPosts: { $in: [this._id] },
+	});
+	this.starsCount = totalStarsCount;
+	return this.save();
 };
 
 export default mongoose.model('Post', PostSchema);

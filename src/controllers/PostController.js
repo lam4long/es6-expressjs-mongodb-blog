@@ -48,7 +48,7 @@ export const getAllPosts = async (req, res) => {
 	}
 };
 
-export const findPostById = async (postId, res) => {
+export const queryPostById = async (postId, res) => {
 	try {
 		const post = await PostModel.findById(postId).populate('author');
 		if (!post) {
@@ -61,50 +61,8 @@ export const findPostById = async (postId, res) => {
 };
 
 export const getPostById = async (req, res) => {
-	const post = await findPostById(req.params.postId, res);
+	const post = await queryPostById(req.params.postId, res);
 	return successResponseWithData(res, 'Get Post By Id Success', post.toJSON());
-};
-
-// update a post
-export const updatePostById = async (req, res) => {
-	const { title, body } = req.body;
-
-	try {
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			// Display sanitized values/errors messages.
-			return validationErrorWithData(res, 'Validation Error.', errors.array());
-		}
-
-		const post = await findPostById(req.params.postId, res);
-		if (post.author._id.toString() === req.user._id.toString()) {
-			post.title = title;
-			post.body = body;
-			await post.save();
-			return successResponseWithData(
-				res,
-				'Post Update Success.',
-				post.toJSON(),
-			);
-		}
-		return wrongPermissionResponse(res);
-	} catch (err) {
-		return errorResponse(res, err);
-	}
-};
-
-// delete a Post
-export const deletePostById = async (req, res) => {
-	try {
-		const post = await findPostById(req.params.postId, res);
-		if (post.author._id.toString() === req.user._id.toString()) {
-			await post.remove();
-			return successResponse(res, 'Post has been deleted');
-		}
-		return wrongPermissionResponse(res);
-	} catch (err) {
-		return errorResponse(res, err);
-	}
 };
 
 // create a Post
@@ -125,6 +83,96 @@ export const createPost = async (req, res) => {
 		});
 		await post.save();
 		return successResponseWithData(res, 'Post Create Success.', post.toJSON());
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+// update a post
+export const updatePostById = async (req, res) => {
+	const { title, body } = req.body;
+
+	try {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			// Display sanitized values/errors messages.
+			return validationErrorWithData(res, 'Validation Error.', errors.array());
+		}
+
+		const post = await queryPostById(req.params.postId, res);
+		if (post.author._id.toString() === req.user._id.toString()) {
+			post.title = title;
+			post.body = body;
+			await post.save();
+			return successResponseWithData(
+				res,
+				'Post Update Success.',
+				post.toJSON(),
+			);
+		}
+		return wrongPermissionResponse(res);
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+// delete a Post
+export const deletePostById = async (req, res) => {
+	try {
+		const post = await queryPostById(req.params.postId, res);
+		if (post.author._id.toString() === req.user._id.toString()) {
+			await post.remove();
+			return successResponse(res, 'Post has been deleted');
+		}
+		return wrongPermissionResponse(res);
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+// Like a Post
+export const likePost = async (req, res) => {
+	try {
+		const post = await queryPostById(req.params.postId);
+		await req.user.likePost(post._id);
+		post.updateLikesCount();
+		return successResponseWithData(res, 'Post has been liked', post.toJSON());
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+// Unlike a Post
+export const unlikePost = async (req, res) => {
+	try {
+		const post = await queryPostById(req.params.postId);
+		await req.user.unlikedPost(post._id);
+		post.updateLikesCount();
+		return successResponseWithData(res, 'Post has been unliked', post.toJSON());
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+// Star a Post
+export const starPost = async (req, res) => {
+	try {
+		const post = await queryPostById(req.params.postId);
+		await req.user.starPost(post._id);
+		post.updateStarsCount();
+		return successResponseWithData(res, 'Post has been stared', post.toJSON());
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+// Unstar a Post
+export const unstarPost = async (req, res) => {
+	try {
+		const post = await queryPostById(req.params.postId);
+		await req.user.unstarPost(post._id);
+		post.updateStarsCount();
+		return successResponseWithData(res, 'Post has been unliked', post.toJSON());
 	} catch (err) {
 		return errorResponse(res, err);
 	}

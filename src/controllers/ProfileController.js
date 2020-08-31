@@ -14,7 +14,7 @@ export const getProfile = async (req, res) => {
 	);
 };
 
-export const getProfileByUserId = async (req, res) => {
+export const findUser = async (req, res) => {
 	try {
 		const user = await UserModel.findById(req.params.userId);
 		if (!user) return notFoundResponse(res, 'User Not Found');
@@ -22,7 +22,7 @@ export const getProfileByUserId = async (req, res) => {
 		return successResponseWithData(
 			res,
 			'Get User Profile Success',
-			user.toProfileJSON(),
+			user.toProfileJSON(req.user),
 		);
 	} catch (err) {
 		return errorResponse(res, err);
@@ -58,3 +58,11 @@ export const unfollowUser = async (req, res) => {
 	]);
 	return successResponse(res, 'Unfollow User Success');
 };
+
+// export const updateProfile = async (req, res) => {
+// 	try {
+
+// 	} catch (err) {
+// 		return errorResponse(res, err);
+// 	}
+// }

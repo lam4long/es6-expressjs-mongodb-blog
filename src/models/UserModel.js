@@ -21,11 +21,13 @@ const UserSchema = new mongoose.Schema(
 			type: String,
 			required: true,
 		},
+		// posts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+		// commentedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+		staredPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
 		likedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
 		following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 		followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 		bio: String,
-		image: String,
 		salt: String,
 	},
 	{ timestamps: true },
@@ -68,7 +70,7 @@ UserSchema.methods.toAuthJSON = function() {
 	};
 };
 
-UserSchema.methods.toProfileJSON = function() {
+UserSchema.methods.toProfileJSON = function(user) {
 	const profile = {
 		username: this.username,
 		email: this.email,
@@ -76,12 +78,12 @@ UserSchema.methods.toProfileJSON = function() {
 		image: this.image,
 	};
 
-	// if (user && user._id !== this._id) {
-	// 	return {
-	// 		...profile,
-	// 		following: user.isFollowing(this._id),
-	// 	};
-	// }
+	if (user && user._id !== this._id) {
+		return {
+			...profile,
+			following: user.isFollowing(this._id),
+		};
+	}
 	return profile;
 };
 
@@ -99,6 +101,22 @@ UserSchema.methods.unlikedPost = function(id) {
 
 UserSchema.methods.isLikedPost = function(id) {
 	return this.likedPosts.some(postId => postId.toString() === id.toString());
+};
+
+UserSchema.methods.starPost = function(id) {
+	if (this.staredPosts.indexOf(id) === -1) {
+		this.staredPosts.push(id);
+	}
+	return this.save();
+};
+
+UserSchema.methods.unstarPost = function(id) {
+	this.staredPosts.remove(id);
+	return this.save();
+};
+
+UserSchema.methods.isStaredPost = function(id) {
+	return this.staredPosts.some(postId => postId.toString() === id.toString());
 };
 
 UserSchema.methods.followUser = function(id) {
@@ -126,10 +144,7 @@ UserSchema.methods.unFollowedBy = function(id) {
 };
 
 UserSchema.methods.isFollowing = function(id) {
-	return this.following.some(userId => {
-		console.log('userId: ', userId);
-		return userId.toString() === id.toString();
-	});
+	return this.following.some(userId => userId.toString() === id.toString());
 };
 
 UserSchema.statics.findByCredential = async function(email, password) {
@@ -146,11 +161,6 @@ UserSchema.statics.findByCredential = async function(email, password) {
 	return user;
 };
 
-/*
-	Note: cant use arrow operator for the callback,
-	which changes the scope of this.
-	If we define a regular callback, should be fine.
-*/
 UserSchema.pre('save', async function(next) {
 	// Hash the password before save the model
 	if (this.isModified('password')) {
