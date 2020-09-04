@@ -9,6 +9,7 @@ const PostSchema = new mongoose.Schema(
 		starsCount: { type: Number, default: 0 },
 		likesCount: { type: Number, default: 0 },
 		comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
+		commentCount: { type: Number, default: 0 },
 		tagList: [{ type: String }],
 		author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 	},
@@ -27,7 +28,7 @@ PostSchema.methods.toJSON = function(user) {
 		createdAt: this.createdAt,
 		updatedAt: this.updatedAt,
 		tagList: this.tagList,
-		author: this.author.toProfileJSON(),
+		author: this.author.toProfileJSON(user),
 	};
 };
 
@@ -44,6 +45,13 @@ PostSchema.methods.updateStarsCount = async function() {
 		staredPosts: { $in: [this._id] },
 	});
 	this.starsCount = totalStarsCount;
+	return this.save();
+};
+
+PostSchema.methods.updateComment = function(id, user) {
+	this.comments.push(id);
+	this.commentCount += 1;
+	user.updateCommentedPost(this._id);
 	return this.save();
 };
 

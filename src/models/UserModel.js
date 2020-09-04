@@ -21,8 +21,8 @@ const UserSchema = new mongoose.Schema(
 			type: String,
 			required: true,
 		},
-		// posts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
-		// commentedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+		posts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+		commentedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
 		staredPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
 		likedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
 		following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -78,7 +78,9 @@ UserSchema.methods.toProfileJSON = function(user) {
 		image: this.image,
 	};
 
-	if (user && user._id !== this._id) {
+	if (user !== '') return profile;
+
+	if (user && user._id.toString() !== this._id.toString()) {
 		return {
 			...profile,
 			following: user.isFollowing(this._id),
@@ -87,11 +89,30 @@ UserSchema.methods.toProfileJSON = function(user) {
 	return profile;
 };
 
+UserSchema.methods.addPost = function(id) {
+	if (this.posts.indexOf(id) === -1) {
+		this.posts.push(id);
+		return this.save();
+	}
+};
+
+UserSchema.methods.removePost = function(id) {
+	this.posts.remove(id);
+	return this.save();
+};
+
+UserSchema.methods.updateCommentedPost = function(id) {
+	if (this.commentedPosts.indexOf(id) === -1) {
+		this.commentedPosts.push(id);
+		return this.save();
+	}
+};
+
 UserSchema.methods.likePost = function(id) {
 	if (this.likedPosts.indexOf(id) === -1) {
 		this.likedPosts.push(id);
+		return this.save();
 	}
-	return this.save();
 };
 
 UserSchema.methods.unlikedPost = function(id) {
@@ -106,8 +127,8 @@ UserSchema.methods.isLikedPost = function(id) {
 UserSchema.methods.starPost = function(id) {
 	if (this.staredPosts.indexOf(id) === -1) {
 		this.staredPosts.push(id);
+		return this.save();
 	}
-	return this.save();
 };
 
 UserSchema.methods.unstarPost = function(id) {
@@ -122,15 +143,15 @@ UserSchema.methods.isStaredPost = function(id) {
 UserSchema.methods.followUser = function(id) {
 	if (this.following.indexOf(id) === -1) {
 		this.following.push(id);
+		return this.save();
 	}
-	return this.save();
 };
 
 UserSchema.methods.isFollowedBy = function(id) {
 	if (this.followers.indexOf(id) === -1) {
 		this.followers.push(id);
+		return this.save();
 	}
-	return this.save();
 };
 
 UserSchema.methods.unfollowUser = function(id) {

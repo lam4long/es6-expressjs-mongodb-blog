@@ -1,9 +1,9 @@
 import express from 'express';
 
 import {
+	findUser,
 	followUser,
 	getProfile,
-	findUser,
 	unfollowUser,
 } from '../controllers/ProfileController';
 import auth from '../middlewares/auth';
@@ -11,7 +11,7 @@ import auth from '../middlewares/auth';
 const profileRouter = express.Router();
 
 profileRouter.get('/', auth, getProfile);
-profileRouter.get('/:userId', findUser);
+profileRouter.get('/:userId', auth, findUser); // set auth optional
 profileRouter.post('/:userId/follow', auth, followUser);
 profileRouter.delete('/:userId/follow', auth, unfollowUser);
 
