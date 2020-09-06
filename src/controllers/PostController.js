@@ -1,6 +1,7 @@
 import { body, validationResult } from 'express-validator';
 
 import PostModel from '../models/PostModel';
+import UserModel from '../models/UserModel';
 import {
 	errorResponse,
 	notFoundResponse,
@@ -9,7 +10,6 @@ import {
 	validationErrorWithData,
 	wrongPermissionResponse,
 } from '../utils/apiResponse';
-import UserModel from '../models/UserModel';
 
 export const createAndUpdatePostValidator = [
 	body('title')
