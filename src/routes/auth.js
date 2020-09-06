@@ -12,4 +12,8 @@ const authRouter = express.Router();
 authRouter.post('/register', registerValidator, register);
 authRouter.post('/login', loginValidator, login);
 
+// TODO add update password
+
+// TODO add refresh token
+
 export default authRouter;

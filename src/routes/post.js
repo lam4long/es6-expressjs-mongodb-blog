@@ -43,4 +43,13 @@ postRouter.post(
 	createComment,
 );
 
+// TODO add feed
+// postRouter.get('/feed')
+
+// TODO add recommended Post
+// postRouter.get('/recommended')
+
+// TODO add comment in comment
+// postRouter.post('/:postId/comment/:commentId')
+
 export default postRouter;
