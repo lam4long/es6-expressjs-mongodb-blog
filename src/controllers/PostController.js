@@ -9,6 +9,7 @@ import {
 	validationErrorWithData,
 	wrongPermissionResponse,
 } from '../utils/apiResponse';
+import UserModel from '../models/UserModel';
 
 export const createAndUpdatePostValidator = [
 	body('title')
@@ -27,7 +28,7 @@ export const getAllPosts = async (req, res) => {
 
 	const query = {};
 	try {
-		const [posts, postsCount] = await Promise.all([
+		const [posts, postsCount, user] = await Promise.all([
 			PostModel.find(query)
 				.limit(Number(limit))
 				.skip(Number(offset))
@@ -35,10 +36,11 @@ export const getAllPosts = async (req, res) => {
 				.populate('author')
 				.exec(),
 			PostModel.countDocuments(query).exec(),
+			req.user ? UserModel.findById(req.user.id) : null,
 		]);
 
 		const result = {
-			posts: posts.map(post => post.toJSON()),
+			posts: posts.map(post => post.toJSON(user)),
 			postsCount,
 			page: offset + 1,
 		};
@@ -61,11 +63,14 @@ export const queryPostById = async (postId, res) => {
 };
 
 export const getPostById = async (req, res) => {
-	const post = await queryPostById(req.params.postId, res);
+	const [user, post] = await Promise.all([
+		req.user ? UserModel.findById(req.user.id) : null,
+		queryPostById(req.params.postId, res),
+	]);
 	return successResponseWithData(
 		res,
 		'Get Post By Id Success',
-		post.toJSON(req.user),
+		post.toJSON(user),
 	);
 };
 
@@ -79,14 +84,14 @@ export const createPost = async (req, res) => {
 			// Display sanitized values/errors messages.
 			return validationErrorWithData(res, 'Validation Error.', errors.array());
 		}
-
+		const author = await UserModel.findById(req.user.id);
 		const post = new PostModel({
 			title,
 			body,
-			author: req.user,
+			author,
 		});
 		await post.save();
-		await req.user.addPost(post._id);
+		await author.addPost(post._id);
 		return successResponseWithData(res, 'Post Create Success.', post.toJSON());
 	} catch (err) {
 		return errorResponse(res, err);
@@ -97,7 +102,7 @@ export const createPost = async (req, res) => {
 export const updatePostById = async (req, res) => {
 	try {
 		const post = await queryPostById(req.params.postId, res);
-		if (post.author._id.toString() !== req.user._id.toString()) {
+		if (post.author._id.toString() !== req.user.id.toString()) {
 			return wrongPermissionResponse(res);
 		}
 
@@ -120,9 +125,12 @@ export const updatePostById = async (req, res) => {
 // delete a Post
 export const deletePostById = async (req, res) => {
 	try {
-		const post = await queryPostById(req.params.postId, res);
-		if (post.author._id.toString() === req.user._id.toString()) {
-			await req.user.removePost(post._id);
+		const [author, post] = await Promise.all([
+			UserModel.findById(req.user.id),
+			queryPostById(req.params.postId, res),
+		]);
+		if (post.author._id.toString() === author._id.toString()) {
+			await author.removePost(post._id);
 			await post.remove();
 			return successResponse(res, 'Post has been deleted');
 		}
@@ -135,8 +143,11 @@ export const deletePostById = async (req, res) => {
 // Like a Post
 export const likePost = async (req, res) => {
 	try {
-		const post = await queryPostById(req.params.postId);
-		await req.user.likePost(post._id);
+		const [user, post] = await Promise.all([
+			UserModel.findById(req.user.id),
+			queryPostById(req.params.postId),
+		]);
+		await user.likePost(post._id);
 		post.updateLikesCount();
 		return successResponseWithData(res, 'Post has been liked', post.toJSON());
 	} catch (err) {
@@ -147,8 +158,11 @@ export const likePost = async (req, res) => {
 // Unlike a Post
 export const unlikePost = async (req, res) => {
 	try {
-		const post = await queryPostById(req.params.postId);
-		await req.user.unlikedPost(post._id);
+		const [user, post] = await Promise.all([
+			UserModel.findById(req.user.id),
+			queryPostById(req.params.postId),
+		]);
+		await user.unlikedPost(post._id);
 		post.updateLikesCount();
 		return successResponseWithData(res, 'Post has been unliked', post.toJSON());
 	} catch (err) {
@@ -159,8 +173,11 @@ export const unlikePost = async (req, res) => {
 // Star a Post
 export const starPost = async (req, res) => {
 	try {
-		const post = await queryPostById(req.params.postId);
-		await req.user.starPost(post._id);
+		const [user, post] = await Promise.all([
+			UserModel.findById(req.user.id),
+			queryPostById(req.params.postId),
+		]);
+		await user.starPost(post._id);
 		post.updateStarsCount();
 		return successResponseWithData(res, 'Post has been stared', post.toJSON());
 	} catch (err) {
@@ -171,8 +188,11 @@ export const starPost = async (req, res) => {
 // Unstar a Post
 export const unstarPost = async (req, res) => {
 	try {
-		const post = await queryPostById(req.params.postId);
-		await req.user.unstarPost(post._id);
+		const [user, post] = await Promise.all([
+			UserModel.findById(req.user.id),
+			queryPostById(req.params.postId),
+		]);
+		await user.unstarPost(post._id);
 		post.updateStarsCount();
 		return successResponseWithData(
 			res,

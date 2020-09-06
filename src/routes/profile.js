@@ -10,9 +10,9 @@ import auth from '../middlewares/auth';
 
 const profileRouter = express.Router();
 
-profileRouter.get('/', auth, getProfile);
-profileRouter.get('/:userId', auth, findUser); // set auth optional
-profileRouter.post('/:userId/follow', auth, followUser);
-profileRouter.delete('/:userId/follow', auth, unfollowUser);
+profileRouter.get('/', auth.required, getProfile);
+profileRouter.get('/:userId', auth.optional, findUser); // set auth optional
+profileRouter.post('/:userId/follow', auth.required, followUser);
+profileRouter.delete('/:userId/follow', auth.required, unfollowUser);
 
 export default profileRouter;

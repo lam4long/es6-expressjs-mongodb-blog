@@ -9,7 +9,7 @@ import mongoose from 'mongoose';
 import morgan from 'morgan';
 
 import apiRouter from './routes/api';
-import { notFoundResponse } from './utils/apiResponse';
+import { notFoundResponse, unauthorizedResponse } from './utils/apiResponse';
 
 dotenv.config();
 
@@ -34,11 +34,6 @@ const db = mongoose.connection;
 
 const app = express();
 
-// don't show the log when it is test
-// if (process.env.NODE_ENV === 'development') {
-// 	app.use(logger('development'));
-// }
-
 if (process.env.NODE_ENV === 'development') {
 	app.use(morgan('dev'));
 }
@@ -53,6 +48,11 @@ app.use(cors()); // To allow cross-origin requests
 const port = 3000;
 
 app.use('/api', apiRouter);
+app.use((err, req, res) => {
+	if (err.name === 'UnauthorizedError') {
+		return unauthorizedResponse(res, 'Invalid Access Token');
+	}
+});
 
 // throw 404 if URL not found
 app.all('*', (req, res) => notFoundResponse(res, 'Page not found'));

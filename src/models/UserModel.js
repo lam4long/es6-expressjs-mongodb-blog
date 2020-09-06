@@ -52,7 +52,7 @@ UserSchema.methods.setPassword = function(password) {
 UserSchema.methods.generateJWT = function() {
 	return jwt.sign(
 		{
-			_id: this._id,
+			id: this._id,
 			username: this.username,
 		},
 		process.env.JWT_SECRET,

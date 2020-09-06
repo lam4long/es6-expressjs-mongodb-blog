@@ -21,25 +21,25 @@ import auth from '../middlewares/auth';
 
 const postRouter = express.Router();
 
-postRouter.get('/', getAllPosts);
-postRouter.post('/', [auth, createAndUpdatePostValidator], createPost);
-postRouter.get('/:postId', getPostById); // set auth optional
+postRouter.get('/', auth.optional, getAllPosts);
+postRouter.post('/', [auth.required, createAndUpdatePostValidator], createPost);
+postRouter.get('/:postId', auth.optional, getPostById); // set auth optional
 postRouter.put(
 	'/:postId',
-	[auth, createAndUpdatePostValidator],
+	[auth.required, createAndUpdatePostValidator],
 	updatePostById,
 );
-postRouter.delete('/:postId', auth, deletePostById);
-postRouter.post('/:postId/like', auth, likePost);
-postRouter.delete('/:postId/like', auth, unlikePost);
-postRouter.post('/:postId/star', auth, starPost);
-postRouter.delete('/:postId/star', auth, unstarPost);
+postRouter.delete('/:postId', auth.required, deletePostById);
+postRouter.post('/:postId/like', auth.required, likePost);
+postRouter.delete('/:postId/like', auth.required, unlikePost);
+postRouter.post('/:postId/star', auth.required, starPost);
+postRouter.delete('/:postId/star', auth.required, unstarPost);
 
 // comment
-postRouter.get('/:postId/comment', getCommentsByPostId);
+postRouter.get('/:postId/comment', auth.optional, getCommentsByPostId);
 postRouter.post(
 	'/:postId/comment',
-	[auth, createCommentValidator],
+	[auth.required, createCommentValidator],
 	createComment,
 );
 

@@ -1,6 +1,7 @@
 import { body, validationResult } from 'express-validator';
 
 import CommentModel from '../models/CommentModel';
+import UserModel from '../models/UserModel';
 import {
 	errorResponse,
 	notFoundResponse,
@@ -37,14 +38,15 @@ export const createComment = async (req, res) => {
 			// Display sanitized values/errors messages.
 			return validationErrorWithData(res, 'Validation Error.', errors.array());
 		}
+		const author = await UserModel.findById(req.user.id);
 		const post = await queryPostById(req.params.postId, res);
 		const comment = new CommentModel({
 			body,
 			post,
-			author: req.user,
+			author,
 		});
 		await comment.save();
-		await post.updateComment(comment._id, req.user);
+		await post.updateComment(comment._id, author);
 		return successResponseWithData(
 			res,
 			'Comment Create Success.',
@@ -60,24 +62,27 @@ export const getCommentsByPostId = async (req, res) => {
 	const offset = req.query.offset || 0;
 	try {
 		const post = await queryPostById(req.params.postId, res);
-		const comments = await post
-			.populate({
-				path: 'comments',
-				populate: {
-					path: 'author',
-				},
-				options: {
-					sort: {
-						createdAt: 'desc',
+		const [user, comments] = await Promise.all([
+			post
+				.populate({
+					path: 'comments',
+					populate: {
+						path: 'author',
 					},
-					limit,
-					skip: offset,
-				},
-			})
-			.execPopulate();
+					options: {
+						sort: {
+							createdAt: 'desc',
+						},
+						limit,
+						skip: offset,
+					},
+				})
+				.execPopulate(),
+			req.user ? UserModel.findById(req.user.id) : null,
+		]);
 
 		const results = {
-			comments: comments.comments.map(comment => comment.toJSON()),
+			comments: comments.comments.map(comment => comment.toJSON(user)),
 			post: post.toJSON(),
 			page: offset + 1,
 			totalComment: post.commentCount,
@@ -90,8 +95,11 @@ export const getCommentsByPostId = async (req, res) => {
 
 export const likeComment = async (req, res) => {
 	try {
-		const comment = await queryCommentById(req.params.commentId);
-		await req.user.likeComment(comment._id);
+		const [user, comment] = await Promise.all([
+			UserModel.findById(req.user.id),
+			queryCommentById(req.params.commentId),
+		]);
+		await user.likeComment(comment._id);
 		comment.updateLikesCount();
 		return successResponseWithData(
 			res,
@@ -105,8 +113,11 @@ export const likeComment = async (req, res) => {
 
 export const unlikeComment = async (req, res) => {
 	try {
-		const comment = await queryCommentById(req.params.commentId);
-		await req.user.unlikeComment(comment._id);
+		const [user, comment] = await Promise.all([
+			UserModel.findById(req.user.id),
+			queryCommentById(req.params.commentId),
+		]);
+		await user.unlikeComment(comment._id);
 		comment.updateLikesCount();
 		return successResponseWithData(
 			res,

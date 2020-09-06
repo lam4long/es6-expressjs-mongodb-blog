@@ -23,10 +23,14 @@ export const notFoundResponse = (res, msg) => {
 	return res.status(404).json(data);
 };
 
-export const errorResponse = (res, msg) => {
+export const errorResponse = (res, err) => {
+	const isProduction = process.env.NODE_ENV === 'development';
+	if (isProduction) {
+		console.log(err.stack);
+	}
 	const data = {
 		status: 0,
-		message: msg,
+		message: !isProduction ? err.message : '',
 	};
 	return res.status(500).json(data);
 };

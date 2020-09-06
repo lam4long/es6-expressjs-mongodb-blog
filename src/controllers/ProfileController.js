@@ -7,22 +7,27 @@ import {
 } from '../utils/apiResponse';
 
 export const getProfile = async (req, res) => {
+	const user = await UserModel.findById(req.user.id);
 	return successResponseWithData(
 		res,
 		'Get User Profile Success',
-		req.user.toProfileJSON(),
+		user.toProfileJSON(),
 	);
 };
 
 export const findUser = async (req, res) => {
 	try {
-		const user = await UserModel.findById(req.params.userId);
-		if (!user) return notFoundResponse(res, 'User Not Found');
+		// TODO: use one query to replace promise.all
+		const [user, targetUser] = await Promise.all([
+			UserModel.findById(req.user.id),
+			UserModel.findById(req.params.userId),
+		]);
+		if (!targetUser) return notFoundResponse(res, 'User Not Found');
 
 		return successResponseWithData(
 			res,
 			'Get User Profile Success',
-			user.toProfileJSON(req.user),
+			targetUser.toProfileJSON(user),
 		);
 	} catch (err) {
 		return errorResponse(res, err);
@@ -35,11 +40,15 @@ export const followUser = async (req, res) => {
 		return errorResponse({ error: 'You cannot follow yourself' });
 	}
 
-	const targetUser = await UserModel.findById(req.params.userId);
+	const [user, targetUser] = await Promise.all([
+		UserModel.findById(req.user.id),
+		UserModel.findById(req.params.userId),
+	]);
+
 	if (!targetUser) return notFoundResponse(res, 'User Not Found');
 	Promise.all([
-		req.user.followUser(targetUser._id),
-		targetUser.isFollowedBy(req.user._id),
+		user.followUser(targetUser._id),
+		targetUser.isFollowedBy(user._id),
 	]);
 	return successResponse(res, 'Follow User Success');
 };
@@ -49,12 +58,15 @@ export const unfollowUser = async (req, res) => {
 	if (req.user._id === req.params.userId) {
 		return errorResponse({ error: 'You cannot unfollow yourself' });
 	}
-	const targetUser = await UserModel.findById(req.params.userId);
+	const [user, targetUser] = await Promise.all([
+		UserModel.findById(req.user.id),
+		UserModel.findById(req.params.userId),
+	]);
 
 	if (!targetUser) return notFoundResponse(res, 'User Not Found');
 	Promise.all([
 		req.user.unfollowUser(targetUser._id),
-		targetUser.unFollowedBy(req.user._id),
+		targetUser.unFollowedBy(user._id),
 	]);
 	return successResponse(res, 'Unfollow User Success');
 };
