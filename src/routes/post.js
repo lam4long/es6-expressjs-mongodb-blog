@@ -10,6 +10,7 @@ import {
 	createPost,
 	deletePostById,
 	getAllPosts,
+	getFeeds,
 	getPostById,
 	likePost,
 	starPost,
@@ -43,8 +44,8 @@ postRouter.post(
 	createComment,
 );
 
-// TODO add feed
-// postRouter.get('/feed')
+// Feed
+postRouter.get('/feed', auth.required, getFeeds);
 
 // TODO add recommended Post
 // postRouter.get('/recommended')

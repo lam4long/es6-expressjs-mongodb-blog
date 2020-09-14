@@ -1,3 +1,4 @@
+import PostModel from '../models/PostModel';
 import UserModel from '../models/UserModel';
 import {
 	errorResponse,
@@ -71,10 +72,136 @@ export const unfollowUser = async (req, res) => {
 	return successResponse(res, 'Unfollow User Success');
 };
 
-// export const updateProfile = async (req, res) => {
-// 	try {
+export const getStaredPosts = async (req, res) => {
+	const limit = req.query.limit || 20;
+	const offset = req.query.offset || 0;
 
-// 	} catch (err) {
-// 		return errorResponse(res, err);
-// 	}
-// }
+	try {
+		const user = await UserModel.findById(req.user.id);
+		const query = { _id: { $in: user.staredPosts } };
+		const [posts, postsCount] = await Promise.all([
+			PostModel.find(query)
+				.limit(Number(limit))
+				.skip(Number(offset))
+				.sort({ createdAt: 'desc' })
+				.populate('author')
+				.exec(),
+			PostModel.countDocuments(query).exec(),
+		]);
+
+		const result = {
+			posts: posts.map(post => post.toJSON(user)),
+			postsCount,
+			page: offset + 1,
+		};
+		return successResponseWithData(res, 'Get Stared Posts Success', result);
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+export const getCommentedPosts = async (req, res) => {
+	const limit = req.query.limit || 20;
+	const offset = req.query.offset || 0;
+
+	try {
+		const user = await UserModel.findById(req.user.id);
+		const query = { _id: { $in: user.commentedPosts } };
+		const [posts, postsCount] = await Promise.all([
+			PostModel.find(query)
+				.limit(Number(limit))
+				.skip(Number(offset))
+				.sort({ createdAt: 'desc' })
+				.populate('author')
+				.exec(),
+			PostModel.countDocuments(query).exec(),
+		]);
+		const result = {
+			posts: posts.map(post => post.toJSON(user)),
+			postsCount,
+			page: offset + 1,
+		};
+		return successResponseWithData(res, 'Get Commented Posts Success', result);
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+export const getlikedPosts = async (req, res) => {
+	const limit = req.query.limit || 20;
+	const offset = req.query.offset || 0;
+
+	try {
+		const user = await UserModel.findById(req.user.id);
+		const query = { _id: { $in: user.likedPosts } };
+		const [posts, postsCount] = await Promise.all([
+			PostModel.find(query) // TODO $in: user.likedPosts.id
+				.limit(Number(limit))
+				.skip(Number(offset))
+				.sort({ createdAt: 'desc' })
+				.populate('author')
+				.exec(),
+			PostModel.countDocuments(query).exec(),
+		]);
+		const result = {
+			posts: posts.map(post => post.toJSON(user)),
+			postsCount,
+			page: offset + 1,
+		};
+		return successResponseWithData(res, 'Get Liked Posts Success', result);
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+export const getFollowings = async (req, res) => {
+	const limit = req.query.limit || 20;
+	const offset = req.query.offset || 0;
+
+	try {
+		const user = await UserModel.findById(req.user.id);
+		const query = { _id: { $in: user.following } };
+		const [followingUsers, usersCount] = await Promise.all([
+			UserModel.find(query)
+				.limit(Number(limit))
+				.skip(Number(offset))
+				.exec(),
+			PostModel.countDocuments(query).exec(),
+		]);
+		const result = {
+			users: followingUsers.map(followingUser =>
+				followingUser.toProfileJSON(user),
+			),
+			usersCount,
+			page: offset + 1,
+		};
+		return successResponseWithData(res, 'Get Following Users Success', result);
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+export const getFollowers = async (req, res) => {
+	const limit = req.query.limit || 20;
+	const offset = req.query.offset || 0;
+
+	try {
+		const user = await UserModel.findById(req.user.id);
+		const query = { _id: { $in: user.followers } };
+		const [followers, usersCount] = await Promise.all([
+			UserModel.find(query)
+				.limit(Number(limit))
+				.skip(Number(offset))
+				.exec(),
+			PostModel.countDocuments(query).exec(),
+		]);
+		const result = {
+			users: followers.map(follower => follower.toProfileJSON(user)),
+			usersCount,
+			page: offset + 1,
+		};
+		return successResponseWithData(res, 'Get Followers Success', result);
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};

@@ -8,8 +8,6 @@ function getTokenFromHeader(req) {
 	return null;
 }
 
-// req.user = { _id: this._id, username: this.username }
-
 const auth = {
 	required: jwt({
 		secret: process.env.JWT_SECRET,

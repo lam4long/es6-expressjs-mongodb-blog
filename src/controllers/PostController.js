@@ -50,6 +50,34 @@ export const getAllPosts = async (req, res) => {
 	}
 };
 
+export const getFeeds = async (req, res) => {
+	const limit = req.query.limit || 20;
+	const offset = req.query.offset || 0;
+
+	try {
+		const user = await UserModel.findById(req.user.id);
+		const query = { author: { $in: user.following } };
+		const [posts, postsCount] = await Promise.all([
+			PostModel.find(query)
+				.limit(Number(limit))
+				.skip(Number(offset))
+				.sort({ createdAt: 'desc' })
+				.populate('author')
+				.exec(),
+			PostModel.countDocuments(query).exec(),
+		]);
+
+		const result = {
+			posts: posts.map(post => post.toJSON(user)),
+			postsCount,
+			page: offset + 1,
+		};
+		return successResponseWithData(res, 'Get Feeds Success', result);
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
 export const queryPostById = async (postId, res) => {
 	try {
 		const post = await PostModel.findById(postId).populate('author');
