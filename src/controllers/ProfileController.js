@@ -1,3 +1,4 @@
+import CommentModel from '../models/CommentModel';
 import PostModel from '../models/PostModel';
 import UserModel from '../models/UserModel';
 import {
@@ -108,13 +109,14 @@ export const getCommentedPosts = async (req, res) => {
 		const user = await UserModel.findById(req.user.id);
 		const query = { _id: { $in: user.commentedPosts } };
 		const [posts, postsCount] = await Promise.all([
-			PostModel.find(query)
+			CommentModel.find(query)
 				.limit(Number(limit))
 				.skip(Number(offset))
 				.sort({ createdAt: 'desc' })
 				.populate('author')
+				.populate('post')
 				.exec(),
-			PostModel.countDocuments(query).exec(),
+			CommentModel.countDocuments(query).exec(),
 		]);
 		const result = {
 			posts: posts.map(post => post.toJSON(user)),
@@ -135,7 +137,7 @@ export const getlikedPosts = async (req, res) => {
 		const user = await UserModel.findById(req.user.id);
 		const query = { _id: { $in: user.likedPosts } };
 		const [posts, postsCount] = await Promise.all([
-			PostModel.find(query) // TODO $in: user.likedPosts.id
+			PostModel.find(query)
 				.limit(Number(limit))
 				.skip(Number(offset))
 				.sort({ createdAt: 'desc' })
@@ -166,7 +168,7 @@ export const getFollowings = async (req, res) => {
 				.limit(Number(limit))
 				.skip(Number(offset))
 				.exec(),
-			PostModel.countDocuments(query).exec(),
+			UserModel.countDocuments(query).exec(),
 		]);
 		const result = {
 			users: followingUsers.map(followingUser =>
@@ -193,7 +195,7 @@ export const getFollowers = async (req, res) => {
 				.limit(Number(limit))
 				.skip(Number(offset))
 				.exec(),
-			PostModel.countDocuments(query).exec(),
+			UserModel.countDocuments(query).exec(),
 		]);
 		const result = {
 			users: followers.map(follower => follower.toProfileJSON(user)),

@@ -1,5 +1,7 @@
 import jwt from 'express-jwt';
 
+import { JWT_SECRET } from '../config';
+
 function getTokenFromHeader(req) {
 	const authorization = req.headers.authorization;
 	if (authorization && authorization.split(' ')[0] === 'Bearer') {
@@ -10,11 +12,13 @@ function getTokenFromHeader(req) {
 
 const auth = {
 	required: jwt({
-		secret: process.env.JWT_SECRET,
+		secret: JWT_SECRET,
+		algorithms: ['HS256'],
 		getToken: getTokenFromHeader,
 	}),
 	optional: jwt({
-		secret: process.env.JWT_SECRET,
+		secret: JWT_SECRET,
+		algorithms: ['HS256'],
 		credentialsRequired: false,
 		getToken: getTokenFromHeader,
 	}),

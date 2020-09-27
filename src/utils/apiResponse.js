@@ -1,3 +1,5 @@
+import { isProduction } from '../config';
+
 export const successResponse = (res, msg) => {
 	const data = {
 		status: 1,
@@ -24,8 +26,7 @@ export const notFoundResponse = (res, msg) => {
 };
 
 export const errorResponse = (res, err) => {
-	const isProduction = process.env.NODE_ENV === 'development';
-	if (isProduction) {
+	if (!isProduction) {
 		console.log(err.stack);
 	}
 	const data = {
@@ -44,10 +45,12 @@ export const validationErrorWithData = (res, msg, data) => {
 	return res.status(400).json(resData);
 };
 
-export const unauthorizedResponse = (res, msg) => {
+export const unauthorizedResponse = (res, err) => {
 	const data = {
 		status: 0,
-		message: msg,
+		code: 999,
+		message: 'missing auth token',
+		error: err,
 	};
 	return res.status(401).json(data);
 };

@@ -1,3 +1,4 @@
+/* eslint-disable prefer-arrow-callback */
 import bodyParser from 'body-parser';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -8,20 +9,20 @@ import helmet from 'helmet';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 
+import { isProduction, MONGODB_URL } from './config';
 import apiRouter from './routes/api';
 import { notFoundResponse, unauthorizedResponse } from './utils/apiResponse';
 
 dotenv.config();
 
 // DB connection
-const MONGODB_URL = process.env.MONGODB_URL;
 mongoose
 	.connect(MONGODB_URL, {
 		useNewUrlParser: true,
 		useUnifiedTopology: true,
 	})
 	.then(() => {
-		if (process.env.NODE_ENV === 'development') {
+		if (!isProduction) {
 			console.log('Connected to %s', MONGODB_URL);
 		}
 	})
@@ -34,7 +35,7 @@ const db = mongoose.connection;
 
 const app = express();
 
-if (process.env.NODE_ENV === 'development') {
+if (!isProduction) {
 	app.use(morgan('dev'));
 }
 
@@ -48,13 +49,16 @@ app.use(cors()); // To allow cross-origin requests
 const port = 3000;
 
 app.use('/api', apiRouter);
-app.use((err, req, res) => {
-	if (err.name === 'UnauthorizedError') {
-		return unauthorizedResponse(res, 'Invalid Access Token');
-	}
-});
 
 // throw 404 if URL not found
 app.all('*', (req, res) => notFoundResponse(res, 'Page not found'));
+
+if (!isProduction) {
+	app.use(function(err, req, res, next) {
+		if (err.name === 'UnauthorizedError') {
+			return unauthorizedResponse(res, err);
+		}
+	});
+}
 
 app.listen(port, () => console.log(`app listening on port ${port}!`));

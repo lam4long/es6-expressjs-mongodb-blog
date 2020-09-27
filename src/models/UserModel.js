@@ -3,11 +3,12 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import uniqueValidator from 'mongoose-unique-validator';
 
+import { JWT_SECRET, JWT_TIMEOUT_DURATION } from '../config';
+
 const UserSchema = new mongoose.Schema(
 	{
 		username: {
 			type: String,
-			unique: true,
 			required: true,
 			index: true,
 		},
@@ -55,9 +56,9 @@ UserSchema.methods.generateJWT = function() {
 			id: this._id,
 			username: this.username,
 		},
-		process.env.JWT_SECRET,
+		JWT_SECRET,
 		{
-			expiresIn: process.env.JWT_TIMEOUT_DURATION,
+			expiresIn: JWT_TIMEOUT_DURATION,
 		},
 	);
 };
