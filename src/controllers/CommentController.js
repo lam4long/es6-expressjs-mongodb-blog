@@ -1,21 +1,12 @@
-import { body, validationResult } from 'express-validator';
-
 import CommentModel from '../models/CommentModel';
 import UserModel from '../models/UserModel';
 import {
 	errorResponse,
 	notFoundResponse,
 	successResponseWithData,
-	validationErrorWithData,
 } from '../utils/apiResponse';
+import validateRequestPayload from '../validators';
 import { queryPostById } from './PostController';
-
-export const createCommentValidator = [
-	body('body')
-		.isLength({ min: 1 })
-		.trim()
-		.withMessage('Body must be specified.'),
-];
 
 export const queryCommentById = async (commentId, res) => {
 	try {
@@ -31,13 +22,9 @@ export const queryCommentById = async (commentId, res) => {
 
 // create a new comment
 export const createComment = async (req, res) => {
-	const { body } = req.body;
+	validateRequestPayload(req, res);
 	try {
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			// Display sanitized values/errors messages.
-			return validationErrorWithData(res, 'Validation Error.', errors.array());
-		}
+		const { body } = req.body;
 		const author = await UserModel.findById(req.user.id);
 		const post = await queryPostById(req.params.postId, res);
 		const comment = new CommentModel({

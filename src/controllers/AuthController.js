@@ -1,112 +1,95 @@
-import { body, validationResult } from 'express-validator';
+import Redis from 'ioredis';
 
 import UserModel from '../models/UserModel';
 import {
 	errorResponse,
+	successResponse,
 	successResponseWithData,
 	unauthorizedResponse,
-	validationErrorWithData,
 } from '../utils/apiResponse';
+import { getRedisClient } from '../utils/redis';
+import validateRequestPayload from '../validators';
 
-/**
- * User registration.
- *
- * @param {string}      firstName
- * @param {string}      lastName
- * @param {string}      email
- * @param {string}      password
- *
- * @returns {Object}
- */
-
-export const registerValidator = [
-	body('username')
-		.isLength({ min: 1, max: 20 })
-		.trim()
-		.withMessage('Username must be specified.')
-		.isAlphanumeric()
-		.withMessage('Username has non-alphanumeric characters.'),
-	body('email')
-		.isLength({ min: 6 })
-		.trim()
-		.withMessage('Email must be specified.')
-		.isEmail()
-		.withMessage('Email must be a valid email address.')
-		.custom(async value => {
-			const user = await UserModel.findOne({ email: value });
-			if (user) {
-				throw new Error('Email already in use');
-			}
-		}),
-	body('password')
-		.isLength({ min: 6 })
-		.trim()
-		.withMessage('Password must be 6 characters or greater.'),
-];
-
-/**
- * User Register.
- *
- * @param {string}      firstName
- * @param {string}      lastName
- * @param {string}			email
- * @param {string}			password
- *
- * @returns {Object}
- */
 export const register = async (req, res) => {
-	const { username, email, password } = req.body;
-	try {
-		// Extract the validation errors from a request.
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			// Display sanitized values/errors messages.
-			return validationErrorWithData(res, 'Validation Error.', errors.array());
-		}
+	validateRequestPayload(req, res);
 
+	try {
+		const { username, email, password } = req.body;
 		const user = new UserModel({
 			username,
 			email,
 			password,
 		});
 		await user.save();
-		return successResponseWithData(
-			res,
-			'Registration Success.',
-			user.toAuthJSON(),
-		);
+		const credential = user.toAuthJSON();
+		await getRedisClient().set(credential.email, credential.refreshToken);
+		return successResponseWithData(res, 'Registration Success.', credential);
 	} catch (err) {
 		// throw error in json response with status 500.
 		return errorResponse(res, err);
 	}
 };
 
-export const loginValidator = [
-	body('email', 'Please enter a valid email').isEmail(),
-	body('password', 'Please enter a valid password').isLength({ min: 6 }),
-];
-
-/**
- * User login.
- *
- * @param {string}      email
- * @param {string}      password
- *
- * @returns {Object}
- */
 export const login = async (req, res) => {
-	const errors = validationResult(req);
-
-	if (!errors.isEmpty()) {
-		return validationErrorWithData(res, 'Validation Error.', errors.array());
-	}
+	validateRequestPayload(req, res);
 
 	try {
 		const { email, password } = req.body;
 		const user = await UserModel.findByCredential(email, password);
 
+		const credential = user.toAuthJSON();
+		await getRedisClient().set(credential.email, credential.refreshToken);
+
 		return successResponseWithData(res, 'Login Success.', user.toAuthJSON());
 	} catch (err) {
+		if (err instanceof Redis.ReplyError) {
+			return errorResponse(res, err);
+		}
 		return unauthorizedResponse(res, err.message);
+	}
+};
+
+export const refreshAccessToken = async (req, res) => {
+	validateRequestPayload(req, res);
+
+	try {
+		const { email, refreshToken } = req.body;
+		const storedRefreshToken = await getRedisClient().get(email);
+		if (storedRefreshToken === refreshToken) {
+			const user = await UserModel.findOne({ email });
+			return successResponseWithData(
+				res,
+				'Refresh Token Success.',
+				user.toAuthJSON(refreshToken),
+			);
+		}
+
+		return unauthorizedResponse(res, 'Invalid Refresh Token');
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+export const changePassword = async (req, res) => {
+	validateRequestPayload(req, res);
+
+	try {
+		const { password } = req.body;
+		const user = await UserModel.findById(req.user.id);
+		user.password = password;
+		await user.save();
+		return successResponse(res, 'Password has been updated');
+	} catch (err) {
+		return errorResponse(res, err);
+	}
+};
+
+export const logout = async (req, res) => {
+	try {
+		const { email } = req.user;
+		await getRedisClient().del(email);
+		return successResponse(res, 'Logout Success.');
+	} catch (err) {
+		return errorResponse(res, err);
 	}
 };

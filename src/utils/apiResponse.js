@@ -46,11 +46,12 @@ export const validationErrorWithData = (res, msg, data) => {
 };
 
 export const unauthorizedResponse = (res, err) => {
+	if (!isProduction) {
+		console.log(err.stack);
+	}
 	const data = {
 		status: 0,
-		code: 999,
-		message: 'missing auth token',
-		error: err,
+		message: err,
 	};
 	return res.status(401).json(data);
 };

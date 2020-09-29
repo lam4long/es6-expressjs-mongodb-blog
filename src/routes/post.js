@@ -2,11 +2,9 @@ import express from 'express';
 
 import {
 	createComment,
-	createCommentValidator,
 	getCommentsByPostId,
 } from '../controllers/CommentController';
 import {
-	createAndUpdatePostValidator,
 	createPost,
 	deletePostById,
 	getAllPosts,
@@ -19,6 +17,8 @@ import {
 	updatePostById,
 } from '../controllers/PostController';
 import auth from '../middlewares/auth';
+import { createCommentValidator } from '../validators/comment';
+import { createAndUpdatePostValidator } from '../validators/post';
 
 const postRouter = express.Router();
 

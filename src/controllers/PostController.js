@@ -1,5 +1,3 @@
-import { body, validationResult } from 'express-validator';
-
 import PostModel from '../models/PostModel';
 import UserModel from '../models/UserModel';
 import {
@@ -7,20 +5,9 @@ import {
 	notFoundResponse,
 	successResponse,
 	successResponseWithData,
-	validationErrorWithData,
 	wrongPermissionResponse,
 } from '../utils/apiResponse';
-
-export const createAndUpdatePostValidator = [
-	body('title')
-		.isLength({ min: 1, max: 50 })
-		.trim()
-		.withMessage('Title must be specified.'),
-	body('body')
-		.isLength({ min: 1 })
-		.trim()
-		.withMessage('Body must be specified.'),
-];
+import validateRequestPayload from '../validators';
 
 export const getAllPosts = async (req, res) => {
 	const limit = req.query.limit || 20;
@@ -102,16 +89,11 @@ export const getPostById = async (req, res) => {
 	);
 };
 
-// create a Post
 export const createPost = async (req, res) => {
-	const { title, body } = req.body;
+	validateRequestPayload(req, res);
 
 	try {
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			// Display sanitized values/errors messages.
-			return validationErrorWithData(res, 'Validation Error.', errors.array());
-		}
+		const { title, body } = req.body;
 		const author = await UserModel.findById(req.user.id);
 		const post = new PostModel({
 			title,
@@ -128,19 +110,13 @@ export const createPost = async (req, res) => {
 
 // update a post
 export const updatePostById = async (req, res) => {
+	validateRequestPayload(req, res);
 	try {
 		const post = await queryPostById(req.params.postId, res);
 		if (post.author._id.toString() !== req.user.id.toString()) {
 			return wrongPermissionResponse(res);
 		}
-
 		const { title, body } = req.body;
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			// Display sanitized values/errors messages.
-			return validationErrorWithData(res, 'Validation Error.', errors.array());
-		}
-
 		post.title = title;
 		post.body = body;
 		await post.save();

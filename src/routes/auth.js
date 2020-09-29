@@ -1,19 +1,31 @@
 import express from 'express';
 
 import {
+	changePassword,
 	login,
-	loginValidator,
+	logout,
+	refreshAccessToken,
 	register,
-	registerValidator,
 } from '../controllers/AuthController';
+import auth from '../middlewares/auth';
+import {
+	changePasswordValidator,
+	loginValidator,
+	refreshTokenValidator,
+	registerValidator,
+} from '../validators/auth';
 
 const authRouter = express.Router();
 
 authRouter.post('/register', registerValidator, register);
 authRouter.post('/login', loginValidator, login);
 
-// TODO add update password
-
-// TODO add refresh token
+authRouter.put(
+	'/changePassword',
+	[auth.required, changePasswordValidator],
+	changePassword,
+);
+authRouter.post('/token', refreshTokenValidator, refreshAccessToken);
+authRouter.delete('/logout', auth.required, logout);
 
 export default authRouter;

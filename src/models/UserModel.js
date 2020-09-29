@@ -3,12 +3,18 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import uniqueValidator from 'mongoose-unique-validator';
 
-import { JWT_SECRET, JWT_TIMEOUT_DURATION } from '../config';
+import {
+	JWT_EXPIRATION,
+	JWT_REFRESH_EXPIRATION,
+	JWT_REFRESH_SECRET,
+	JWT_SECRET,
+} from '../config';
 
 const UserSchema = new mongoose.Schema(
 	{
 		username: {
 			type: String,
+			unique: true,
 			required: true,
 			index: true,
 		},
@@ -50,24 +56,32 @@ UserSchema.methods.setPassword = function(password) {
 	return [salt, hash];
 };
 
-UserSchema.methods.generateJWT = function() {
+UserSchema.methods.generateAccessToken = function() {
 	return jwt.sign(
 		{
 			id: this._id,
 			username: this.username,
+			email: this.email,
 		},
 		JWT_SECRET,
 		{
-			expiresIn: JWT_TIMEOUT_DURATION,
+			expiresIn: JWT_EXPIRATION,
 		},
 	);
 };
 
-UserSchema.methods.toAuthJSON = function() {
+UserSchema.methods.generateRefreshToken = function() {
+	return jwt.sign({ id: this._id }, JWT_REFRESH_SECRET, {
+		expiresIn: JWT_REFRESH_EXPIRATION,
+	});
+};
+
+UserSchema.methods.toAuthJSON = function(refreshToken) {
 	return {
 		username: this.username,
 		email: this.email,
-		token: this.generateJWT(),
+		token: this.generateAccessToken(),
+		refreshToken: refreshToken || this.generateRefreshToken(),
 	};
 };
 
